@@ -1,9 +1,56 @@
 import { Clock, Heart, Users, Music, ArrowRight, BookOpen, MapPin } from 'lucide-react'
 import Link from 'next/link'
+import { generateMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
+import Breadcrumb from '@/components/ui/Breadcrumb'
+import { generateBreadcrumbStructuredData } from '@/lib/breadcrumb-utils'
+
+export const metadata: Metadata = generateMetadata({
+  title: 'Church Ministries - Youth, Children, Women & Men Groups',
+  description: 'Discover our church ministries including youth group, children\'s ministry, women\'s fellowship, men\'s group, and community outreach programs at Healing Word Christian Church.',
+  keywords: [
+    'church ministries',
+    'youth group',
+    'children ministry',
+    'women fellowship',
+    'men group',
+    'community outreach',
+    'church programs',
+    'ministry opportunities',
+    'volunteer church',
+    'church groups',
+    'christian ministry',
+    'church community'
+  ],
+  canonical: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/ministries`,
+  openGraph: {
+    title: 'Church Ministries - Youth, Children, Women & Men Groups',
+    description: 'Discover our church ministries including youth group, children\'s ministry, women\'s fellowship, men\'s group, and community outreach programs.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/ministries`
+  }
+})
 
 export default function MinistriesPage() {
+  const breadcrumbItems = [{ label: 'Ministries' }]
+  const breadcrumbStructuredData = generateBreadcrumbStructuredData(breadcrumbItems)
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumb Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData)
+        }}
+      />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b">
+        <div className="container-custom py-4">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+      </div>
+
       {/* Header */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
         <div className="container-custom text-center">

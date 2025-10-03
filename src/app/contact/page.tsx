@@ -1,9 +1,55 @@
 import { Clock, Mail, Phone, MapPin, MessageCircle, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { generateMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
+import Breadcrumb from '@/components/ui/Breadcrumb'
+import { generateBreadcrumbStructuredData } from '@/lib/breadcrumb-utils'
+import ContactForm from './ContactForm'
+
+export const metadata: Metadata = generateMetadata({
+  title: 'Contact Healing Word Christian Church - Get in Touch Today',
+  description: 'Contact Healing Word Christian Church - Get in touch with us for prayer requests, general inquiries, and ministry questions. Visit us this Sunday or reach out directly.',
+  keywords: [
+    'contact healing word church',
+    'church contact information',
+    'prayer requests',
+    'church phone number',
+    'church email',
+    'church address',
+    'visit church',
+    'church office hours',
+    'pastor contact',
+    'church inquiry'
+  ],
+  canonical: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/contact`,
+  openGraph: {
+    title: 'Contact Healing Word Christian Church - Get in Touch Today',
+    description: 'Contact Healing Word Christian Church - Get in touch with us for prayer requests, general inquiries, and ministry questions.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/contact`
+  }
+})
 
 export default function ContactPage() {
+  const breadcrumbItems = [{ label: 'Contact Us' }]
+  const breadcrumbStructuredData = generateBreadcrumbStructuredData(breadcrumbItems)
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumb Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData)
+        }}
+      />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b">
+        <div className="container-custom py-4">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+      </div>
+
       {/* Header */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
         <div className="container-custom text-center">
@@ -16,63 +62,31 @@ export default function ContactPage() {
         </div>
       </section>
 
-      {/* Coming Soon Section */}
+      {/* Contact Form Section */}
       <section className="section-padding">
         <div className="container-custom">
-          <div className="max-w-4xl mx-auto text-center">
-            {/* Icon */}
-            <div className="mb-8">
-              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto">
-                <Clock className="w-12 h-12 text-blue-600" />
+          <div className="max-w-4xl mx-auto">
+            {/* Header */}
+            <div className="text-center mb-12">
+              <div className="w-24 h-24 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-6">
+                <MessageCircle className="w-12 h-12 text-blue-600" />
               </div>
+              <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-4">
+                Get in Touch
+              </h2>
+              <p className="text-xl text-gray-600 max-w-2xl mx-auto">
+                We'd love to hear from you! Send us a message and we'll respond as soon as possible.
+              </p>
             </div>
 
-            {/* Main Message */}
-            <h2 className="text-3xl md:text-5xl font-bold text-gray-900 mb-6">
-              Contact Form Coming Soon
-            </h2>
-            <p className="text-xl text-gray-600 mb-8 max-w-2xl mx-auto">
-              We're building a comprehensive contact system to better serve you. 
-              Our new contact page will include forms, staff directories, and easy ways to get in touch.
-            </p>
 
-            {/* What to Expect */}
-            <div className="grid md:grid-cols-3 gap-8 mb-12">
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <MessageCircle className="w-8 h-8 text-blue-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Contact Forms</h3>
-                <p className="text-gray-600">
-                  Easy-to-use forms for prayer requests, general inquiries, and ministry questions
-                </p>
-              </div>
+            {/* Contact Form */}
+            <ContactForm />
 
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Mail className="w-8 h-8 text-green-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Staff Directory</h3>
-                <p className="text-gray-600">
-                  Direct contact information for pastors, staff, and ministry leaders
-                </p>
-              </div>
-
-              <div className="text-center p-6">
-                <div className="w-16 h-16 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-4">
-                  <Phone className="w-8 h-8 text-purple-600" />
-                </div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">Quick Response</h3>
-                <p className="text-gray-600">
-                  Fast response times and multiple ways to reach us when you need us most
-                </p>
-              </div>
-            </div>
-
-            {/* Current Contact Info */}
+            {/* Contact Information */}
             <div className="bg-white p-8 rounded-xl shadow-lg mb-8">
-              <h3 className="text-2xl font-bold text-gray-900 mb-6">
-                How to Reach Us Now
+              <h3 className="text-2xl font-bold text-gray-900 mb-6 text-center">
+                Other Ways to Reach Us
               </h3>
               <div className="grid md:grid-cols-3 gap-6">
                 <div className="text-center p-4">
@@ -80,27 +94,27 @@ export default function ContactPage() {
                     <Phone className="w-6 h-6 text-blue-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                  <p className="text-gray-600">(555) 123-4567</p>
+                  <p className="text-gray-600">+2348144093507</p>
                 </div>
                 <div className="text-center p-4">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Mail className="w-6 h-6 text-green-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
-                  <p className="text-gray-600">info@healingwordchurch.com</p>
+                  <p className="text-gray-600">info@healing-word-church.org</p>
                 </div>
                 <div className="text-center p-4">
                   <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <MapPin className="w-6 h-6 text-purple-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
-                  <p className="text-gray-600">123 Church Street, Your City, ST 12345</p>
+                  <p className="text-gray-600">6 Bella Crescent Behind Peridot Filling Station After Oba's Palace Iyana Ejigbo Lagos, Nigeria</p>
                 </div>
               </div>
             </div>
 
             {/* Call to Action */}
-            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-8 rounded-xl">
+            <div className="bg-gradient-to-r from-blue-50 to-blue-100 p-8 rounded-xl text-center">
               <h3 className="text-2xl font-bold text-gray-900 mb-4">
                 Visit Us This Sunday
               </h3>

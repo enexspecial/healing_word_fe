@@ -1,9 +1,54 @@
 import { Clock, Heart, Users, BookOpen, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import { generateMetadata } from '@/lib/seo'
+import type { Metadata } from 'next'
+import Breadcrumb from '@/components/ui/Breadcrumb'
+import { generateBreadcrumbStructuredData } from '@/lib/breadcrumb-utils'
+
+export const metadata: Metadata = generateMetadata({
+  title: 'About Healing Word Christian Church - Our Story, Mission & Values',
+  description: 'Learn about Healing Word Christian Church - our story, mission, values, and the wonderful people who make our church family special. Discover how God has been working through our community.',
+  keywords: [
+    'about healing word church',
+    'church history',
+    'church mission',
+    'church values',
+    'pastor team',
+    'church leadership',
+    'christian community story',
+    'church family',
+    'faith journey',
+    'church vision'
+  ],
+  canonical: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/about`,
+  openGraph: {
+    title: 'About Healing Word Christian Church - Our Story, Mission & Values',
+    description: 'Learn about Healing Word Christian Church - our story, mission, values, and the wonderful people who make our church family special.',
+    url: `${process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3000'}/about`
+  }
+})
 
 export default function AboutPage() {
+  const breadcrumbItems = [{ label: 'About Us' }]
+  const breadcrumbStructuredData = generateBreadcrumbStructuredData(breadcrumbItems)
+
   return (
     <div className="min-h-screen bg-gray-50">
+      {/* Breadcrumb Structured Data */}
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{
+          __html: JSON.stringify(breadcrumbStructuredData)
+        }}
+      />
+      
+      {/* Breadcrumb Navigation */}
+      <div className="bg-white border-b">
+        <div className="container-custom py-4">
+          <Breadcrumb items={breadcrumbItems} />
+        </div>
+      </div>
+
       {/* Header */}
       <section className="bg-gradient-to-r from-blue-600 to-blue-800 text-white py-20">
         <div className="container-custom text-center">
@@ -109,7 +154,7 @@ export default function AboutPage() {
               </div>
               <div className="bg-gray-50 p-6 rounded-lg">
                 <h4 className="font-semibold text-gray-900 mb-2">Location</h4>
-                <p className="text-gray-600">123 Church Street, Your City</p>
+                <p className="text-gray-600">6 Bella Crescent Behind Peridot Filling Station After Oba's Palace Iyana Ejigbo Lagos, Nigeria</p>
               </div>
             </div>
           </div>

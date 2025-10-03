@@ -78,9 +78,11 @@ export default function EbookCard({
           {coverImage ? (
             <Image
               src={coverImage}
-              alt={title}
+              alt={`${title} by ${author} - ${getCategoryLabel(category)} cover image`}
               fill
               className="object-cover"
+              sizes="(max-width: 768px) 50vw, (max-width: 1200px) 33vw, 25vw"
+              priority={isNew || isPopular}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center">

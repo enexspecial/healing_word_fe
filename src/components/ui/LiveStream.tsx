@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from 'react'
 import { Play, Pause, Volume2, VolumeX, Maximize, Users, Calendar } from 'lucide-react'
+import ClientOnly from '@/components/common/ClientOnly'
 
 interface LiveStreamProps {
   streamUrl?: string
@@ -10,6 +11,7 @@ interface LiveStreamProps {
   title?: string
   description?: string
   chatEnabled?: boolean
+  viewerCount?: number
 }
 
 export default function LiveStream({
@@ -18,21 +20,11 @@ export default function LiveStream({
   isLive = false,
   title = 'Sunday Service',
   description = 'Join us for our live Sunday worship service',
-  chatEnabled = true
+  chatEnabled = true,
+  viewerCount = 0
 }: LiveStreamProps) {
   const [isMuted, setIsMuted] = useState(false)
   const [isFullscreen, setIsFullscreen] = useState(false)
-  const [viewerCount, setViewerCount] = useState(0)
-
-  useEffect(() => {
-    // Simulate viewer count updates
-    if (isLive) {
-      const interval = setInterval(() => {
-        setViewerCount(prev => prev + Math.floor(Math.random() * 3) - 1)
-      }, 5000)
-      return () => clearInterval(interval)
-    }
-  }, [isLive])
 
   const getEmbedUrl = () => {
     if (!streamUrl) return ''
@@ -73,7 +65,9 @@ export default function LiveStream({
           <div className="flex items-center gap-4 text-sm">
             <div className="flex items-center gap-1">
               <Users className="w-4 h-4" />
-              <span>{Math.max(0, viewerCount)} watching</span>
+              <ClientOnly fallback={<span>0 watching</span>}>
+                <span>{Math.max(0, viewerCount)} watching</span>
+              </ClientOnly>
             </div>
           </div>
         </div>
