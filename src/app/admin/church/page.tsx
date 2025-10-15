@@ -35,6 +35,7 @@ interface ChurchInfoDB {
   };
   servicesData?: {
     services: Array<{
+      id?: string;
       name: string;
       description: string;
       time: string;
@@ -75,8 +76,8 @@ export default function ChurchInfoPage() {
     values: ["Faith", "Love", "Community", "Service", "Excellence"]
   });
   const [services, setServices] = useState([
-    { name: "Sunday Worship", description: "Main worship service", dayOfWeek: "Sunday", time: "9:00 AM", location: "Main Sanctuary", isActive: true },
-    { name: "Wednesday Bible Study", description: "Mid-week Bible study", dayOfWeek: "Wednesday", time: "7:00 PM", location: "Conference Room", isActive: true },
+    { id: "1", name: "Sunday Worship", description: "Main worship service", dayOfWeek: "Sunday", time: "9:00 AM", location: "Main Sanctuary", isActive: true },
+    { id: "2", name: "Wednesday Bible Study", description: "Mid-week Bible study", dayOfWeek: "Wednesday", time: "7:00 PM", location: "Conference Room", isActive: true },
   ]);
   const [contact, setContact] = useState({
     address: "123 Church Street",
@@ -92,7 +93,7 @@ export default function ChurchInfoPage() {
       twitter: "",
       youtube: ""
     },
-    officeHours: { "Monday-Friday": "9:00 AM - 5:00 PM" }
+    officeHours: { "Monday-Friday": "9:00 AM - 5:00 PM" } as { [key: string]: string }
   });
 
   useEffect(() => {
@@ -125,7 +126,8 @@ export default function ChurchInfoPage() {
         });
       }
       if (item.key === 'services' && item.servicesData) {
-        setServices(item.servicesData.services.map(service => ({
+        setServices(item.servicesData.services.map((service, index) => ({
+          id: service.id || (index + 1).toString(),
           name: service.name,
           description: service.description,
           dayOfWeek: service.dayOfWeek,
@@ -149,7 +151,7 @@ export default function ChurchInfoPage() {
             twitter: item.contactData.socialMedia?.twitter || "",
             youtube: item.contactData.socialMedia?.youtube || ""
           },
-          officeHours: item.contactData.officeHours || { "Monday-Friday": "9:00 AM - 5:00 PM" }
+          officeHours: item.contactData.officeHours || { "Monday-Friday": "9:00 AM - 5:00 PM" } as { [key: string]: string }
         });
       }
     });
@@ -304,7 +306,7 @@ export default function ChurchInfoPage() {
                   <div className="flex items-center space-x-4 text-sm text-gray-500 mt-1">
                     <span className="flex items-center">
                       <Calendar className="h-3 w-3 mr-1" />
-                      {service.day}
+                      {service.dayOfWeek}
                     </span>
                     <span className="flex items-center">
                       <Clock className="h-3 w-3 mr-1" />
@@ -417,17 +419,19 @@ export default function ChurchInfoPage() {
             {isEditing ? (
               <input
                 type="text"
-                value={contact.officeHours}
-                onChange={(e) =>
-                  setContact({ ...contact, officeHours: e.target.value })
-                }
+                value={Object.entries(contact.officeHours).map(([day, hours]) => `${day}: ${hours}`).join(', ')}
+                onChange={(e) => {
+                  const value = e.target.value;
+                  // Simple parsing - in a real app you'd want more sophisticated parsing
+                  setContact({ ...contact, officeHours: { "Monday-Friday": value || "9:00 AM - 5:00 PM" } });
+                }}
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 aria-label="Office hours"
               />
             ) : (
               <p className="text-gray-700 bg-gray-50 p-3 rounded-md flex items-center">
                 <Clock className="h-4 w-4 mr-2 text-gray-400" />
-                {contact.officeHours}
+                {Object.entries(contact.officeHours).map(([day, hours]) => `${day}: ${hours}`).join(', ')}
               </p>
             )}
           </div>
