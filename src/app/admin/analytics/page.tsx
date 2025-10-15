@@ -31,9 +31,6 @@ import {
   RealTimeStats 
 } from "@/lib/services/analyticsService";
 
-
-// this analytic
-
 export default function AnalyticsPage() {
   const [analytics, setAnalytics] = useState<ComprehensiveAnalytics | null>(null);
   const [realTimeStats, setRealTimeStats] = useState<RealTimeStats | null>(null);
@@ -364,24 +361,24 @@ export default function AnalyticsPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Downloads</h3>
                   <div className="space-y-2">
-                    {analytics.contentEngagement.topDownloadedResources.slice(0, 5).map((resource, index) => (
+                    {analytics.contentEngagement.topDownloadedResources?.slice(0, 5).map((resource, index) => (
                       <div key={index} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
-                        <span className="text-sm text-gray-700 truncate flex-1">{resource.title}</span>
-                        <span className="text-sm font-semibold text-gray-900 ml-2">{formatNumber(resource.downloadCount)}</span>
+                        <span className="text-sm text-gray-700 truncate flex-1">{resource?.title || 'Unknown'}</span>
+                        <span className="text-sm font-semibold text-gray-900 ml-2">{formatNumber(resource?.downloadCount || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No downloads yet</p>}
                   </div>
                 </div>
               </div>
 
-              {analytics.contentEngagement.downloadsByCategory.length > 0 && (
+              {analytics.contentEngagement.downloadsByCategory?.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Downloads by Category</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
-                    {analytics.contentEngagement.downloadsByCategory.map((category, index) => (
+                    {analytics.contentEngagement.downloadsByCategory?.map((category, index) => (
                       <div key={index} className="border border-gray-200 rounded-lg p-3 text-center">
-                        <p className="text-xs text-gray-600 mb-1">{category.categoryName}</p>
-                        <p className="text-xl font-bold text-gray-900">{formatNumber(category.count)}</p>
+                        <p className="text-xs text-gray-600 mb-1">{category?.categoryName || 'Unknown'}</p>
+                        <p className="text-xl font-bold text-gray-900">{formatNumber(category?.count || 0)}</p>
                       </div>
                     ))}
                   </div>
@@ -406,10 +403,10 @@ export default function AnalyticsPage() {
                   <p className="text-3xl font-bold text-blue-600">{analytics.contactMetrics.avgResponseTimeHours.toFixed(1)}h</p>
                 </div>
 
-                {analytics.contactMetrics.statusBreakdown.map((status, index) => (
+                {analytics.contactMetrics.statusBreakdown?.map((status, index) => (
                   <div key={index} className="border border-gray-200 rounded-lg p-4">
-                    <h3 className="text-sm font-medium text-gray-600 mb-2 capitalize">{status.status}</h3>
-                    <p className="text-3xl font-bold text-gray-900">{formatNumber(status.count)}</p>
+                    <h3 className="text-sm font-medium text-gray-600 mb-2 capitalize">{status?.status || 'Unknown'}</h3>
+                    <p className="text-3xl font-bold text-gray-900">{formatNumber(status?.count || 0)}</p>
                   </div>
                 ))}
               </div>
@@ -443,17 +440,17 @@ export default function AnalyticsPage() {
                 </div>
               </div>
 
-              {analytics.streamingAnalytics.topStreams.length > 0 && (
+              {analytics.streamingAnalytics.topStreams?.length > 0 && (
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Streams</h3>
                   <div className="space-y-2">
-                    {analytics.streamingAnalytics.topStreams.slice(0, 5).map((stream, index) => (
+                    {analytics.streamingAnalytics.topStreams?.slice(0, 5).map((stream, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900">{stream.title}</p>
-                          <p className="text-xs text-gray-500">{stream.platform}</p>
+                          <p className="text-sm font-medium text-gray-900">{stream?.title || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500">{stream?.platform || 'Unknown'}</p>
                         </div>
-                        <span className="text-sm font-bold text-red-600">{formatNumber(stream.viewerCount)} viewers</span>
+                        <span className="text-sm font-bold text-red-600">{formatNumber(stream?.viewerCount || 0)} viewers</span>
                       </div>
                     ))}
                   </div>
@@ -484,14 +481,14 @@ export default function AnalyticsPage() {
               <div className="mt-6">
                 <h3 className="text-lg font-semibold text-gray-900 mb-4">Traffic by Day of Week</h3>
                 <div className="space-y-2">
-                  {analytics.timeBasedAnalysis.trafficByDayOfWeek.map((day, index) => {
-                    const maxViews = Math.max(...analytics.timeBasedAnalysis.trafficByDayOfWeek.map(d => d.pageViews));
-                    const percentage = (day.pageViews / maxViews) * 100;
+                  {analytics.timeBasedAnalysis.trafficByDayOfWeek?.map((day, index) => {
+                    const maxViews = Math.max(...(analytics.timeBasedAnalysis.trafficByDayOfWeek?.map(d => d?.pageViews || 0) || [1]));
+                    const percentage = ((day?.pageViews || 0) / maxViews) * 100;
                     return (
                       <div key={index}>
                         <div className="flex items-center justify-between mb-1">
-                          <span className="text-sm font-medium text-gray-700">{day.dayName}</span>
-                          <span className="text-sm text-gray-600">{formatNumber(day.pageViews)} views</span>
+                          <span className="text-sm font-medium text-gray-700">{day?.dayName || 'Unknown'}</span>
+                          <span className="text-sm text-gray-600">{formatNumber(day?.pageViews || 0)} views</span>
                         </div>
                         <div className="w-full bg-gray-200 rounded-full h-2">
                           <div 
@@ -516,47 +513,47 @@ export default function AnalyticsPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Engaging Pages</h3>
                   <div className="space-y-2">
-                    {analytics.pagePerformance.engagingPages.slice(0, 5).map((page, index) => (
+                    {analytics.pagePerformance.engagingPages?.slice(0, 5).map((page, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">{page.pageTitle || page.pageUrl}</p>
-                          <p className="text-xs text-gray-500 truncate">{page.pageUrl}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{page?.pageTitle || page?.pageUrl || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 truncate">{page?.pageUrl || ''}</p>
                         </div>
-                        <span className="text-sm font-bold text-green-600 ml-2">{formatTime(page.avgTimeOnPage)}</span>
+                        <span className="text-sm font-bold text-green-600 ml-2">{formatTime(page?.avgTimeOnPage || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No data available</p>}
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Quick Exit Pages</h3>
                   <div className="space-y-2">
-                    {analytics.pagePerformance.quickExitPages.slice(0, 5).map((page, index) => (
+                    {analytics.pagePerformance.quickExitPages?.slice(0, 5).map((page, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">{page.pageTitle || page.pageUrl}</p>
-                          <p className="text-xs text-gray-500 truncate">{page.pageUrl}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{page?.pageTitle || page?.pageUrl || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 truncate">{page?.pageUrl || ''}</p>
                         </div>
-                        <span className="text-sm font-bold text-red-600 ml-2">{formatTime(page.avgTimeOnPage)}</span>
+                        <span className="text-sm font-bold text-red-600 ml-2">{formatTime(page?.avgTimeOnPage || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No data available</p>}
                   </div>
                 </div>
               </div>
 
-              {analytics.userBehavior.exitPages.length > 0 && (
+              {analytics.userBehavior.exitPages?.length > 0 && (
                 <div className="mt-6">
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Most Common Exit Pages</h3>
                   <div className="space-y-2">
-                    {analytics.userBehavior.exitPages.slice(0, 5).map((page, index) => (
+                    {analytics.userBehavior.exitPages?.slice(0, 5).map((page, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex-1">
-                          <p className="text-sm font-medium text-gray-900 truncate">{page.pageTitle || page.pageUrl}</p>
-                          <p className="text-xs text-gray-500 truncate">{page.pageUrl}</p>
+                          <p className="text-sm font-medium text-gray-900 truncate">{page?.pageTitle || page?.pageUrl || 'Unknown'}</p>
+                          <p className="text-xs text-gray-500 truncate">{page?.pageUrl || ''}</p>
                         </div>
                         <div className="flex items-center gap-2">
                           <LogOut className="w-4 h-4 text-gray-400" />
-                          <span className="text-sm font-bold text-gray-900">{formatNumber(page.exitCount)}</span>
+                          <span className="text-sm font-bold text-gray-900">{formatNumber(page?.exitCount || 0)}</span>
                         </div>
                       </div>
                     ))}
@@ -575,41 +572,41 @@ export default function AnalyticsPage() {
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Devices</h3>
                   <div className="space-y-2">
-                    {analytics.enhancedDeviceStats.deviceStats.map((device, index) => (
+                    {analytics.enhancedDeviceStats.deviceStats?.map((device, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                         <div className="flex items-center gap-2">
-                          {device.device === 'mobile' && <Smartphone className="w-4 h-4 text-gray-500" />}
-                          {device.device === 'tablet' && <Tablet className="w-4 h-4 text-gray-500" />}
-                          {device.device === 'desktop' && <Monitor className="w-4 h-4 text-gray-500" />}
-                          <span className="text-sm font-medium text-gray-700 capitalize">{device.device}</span>
+                          {device?.device === 'mobile' && <Smartphone className="w-4 h-4 text-gray-500" />}
+                          {device?.device === 'tablet' && <Tablet className="w-4 h-4 text-gray-500" />}
+                          {device?.device === 'desktop' && <Monitor className="w-4 h-4 text-gray-500" />}
+                          <span className="text-sm font-medium text-gray-700 capitalize">{device?.device || 'Unknown'}</span>
                         </div>
-                        <span className="text-sm font-bold text-gray-900">{formatNumber(device.count)}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatNumber(device?.count || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No device data</p>}
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Operating Systems</h3>
                   <div className="space-y-2">
-                    {analytics.enhancedDeviceStats.osStats.map((os, index) => (
+                    {analytics.enhancedDeviceStats.osStats?.map((os, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700 capitalize">{os.os}</span>
-                        <span className="text-sm font-bold text-gray-900">{formatNumber(os.count)}</span>
+                        <span className="text-sm font-medium text-gray-700 capitalize">{os?.os || 'Unknown'}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatNumber(os?.count || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No OS data</p>}
                   </div>
                 </div>
 
                 <div>
                   <h3 className="text-lg font-semibold text-gray-900 mb-4">Browsers</h3>
                   <div className="space-y-2">
-                    {analytics.enhancedDeviceStats.browserStats.map((browser, index) => (
+                    {analytics.enhancedDeviceStats.browserStats?.map((browser, index) => (
                       <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
-                        <span className="text-sm font-medium text-gray-700 capitalize">{browser.browser}</span>
-                        <span className="text-sm font-bold text-gray-900">{formatNumber(browser.count)}</span>
+                        <span className="text-sm font-medium text-gray-700 capitalize">{browser?.browser || 'Unknown'}</span>
+                        <span className="text-sm font-bold text-gray-900">{formatNumber(browser?.count || 0)}</span>
                       </div>
-                    ))}
+                    )) || <p className="text-sm text-gray-500">No browser data</p>}
                   </div>
                 </div>
               </div>
@@ -619,18 +616,18 @@ export default function AnalyticsPage() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Top Pages</h3>
               <div className="space-y-3">
-                {analytics.topPages.slice(0, 10).map((page, index) => (
+                {analytics.topPages?.slice(0, 10).map((page, index) => (
                   <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg transition-colors">
                     <div className="flex-1">
-                      <p className="text-sm font-medium text-gray-900 truncate">{page.pageTitle || page.pageUrl}</p>
-                      <p className="text-xs text-gray-500 truncate">{page.pageUrl}</p>
+                      <p className="text-sm font-medium text-gray-900 truncate">{page?.pageTitle || page?.pageUrl || 'Unknown'}</p>
+                      <p className="text-xs text-gray-500 truncate">{page?.pageUrl || ''}</p>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="text-sm font-semibold text-gray-900">{formatNumber(page.pageViews)}</p>
-                      <p className="text-xs text-gray-500">{formatNumber(page.uniqueVisitors)} unique</p>
+                      <p className="text-sm font-semibold text-gray-900">{formatNumber(page?.pageViews || 0)}</p>
+                      <p className="text-xs text-gray-500">{formatNumber(page?.uniqueVisitors || 0)} unique</p>
                     </div>
                   </div>
-                ))}
+                )) || <p className="text-sm text-gray-500">No page data available</p>}
               </div>
             </div>
 
@@ -638,20 +635,20 @@ export default function AnalyticsPage() {
             <div className="bg-white rounded-xl shadow-lg p-6">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Geographic Distribution</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                {analytics.geoDistribution.slice(0, 12).map((location, index) => (
+                {analytics.geoDistribution?.slice(0, 12).map((location, index) => (
                   <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                     <div className="flex items-center gap-2">
                       <MapPin className="w-4 h-4 text-gray-500" />
                       <div>
                         <p className="text-sm font-medium text-gray-900">
-                          {location.city}, {location.region}
+                          {location?.city || 'Unknown'}{location?.region ? `, ${location.region}` : ''}
                         </p>
-                        <p className="text-xs text-gray-500">{location.country}</p>
+                        <p className="text-xs text-gray-500">{location?.country || 'Unknown'}</p>
                       </div>
                     </div>
-                    <span className="text-sm font-semibold text-gray-900">{formatNumber(location.visitors)}</span>
+                    <span className="text-sm font-semibold text-gray-900">{formatNumber(location?.visitors || 0)}</span>
                   </div>
-                ))}
+                )) || <p className="text-sm text-gray-500">No geographic data available</p>}
               </div>
             </div>
           </>
