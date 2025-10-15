@@ -179,11 +179,11 @@ export default function UsersPage() {
   const availableStatuses = ['All', 'Active', 'Inactive']
 
   const filteredUsers = users.filter(user => {
-    const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'All' || user.role === selectedRole
-    const matchesStatus = selectedStatus === 'All' || user.isActive === (selectedStatus === 'Active')
+    const matchesSearch = (user?.firstName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user?.lastName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         user?.email?.toLowerCase().includes(searchTerm.toLowerCase())) || false
+    const matchesRole = selectedRole === 'All' || user?.role === selectedRole
+    const matchesStatus = selectedStatus === 'All' || user?.isActive === (selectedStatus === 'Active')
     
     return matchesSearch && matchesRole && matchesStatus
   })
@@ -329,7 +329,7 @@ export default function UsersPage() {
             </h3>
             <div className="flex items-center space-x-2 text-sm text-gray-500">
               <Shield className="h-4 w-4" />
-              <span>Active Users: {filteredUsers.filter(u => u.isActive).length}</span>
+              <span>Active Users: {filteredUsers.filter(u => u?.isActive).length}</span>
             </div>
           </div>
           
@@ -382,44 +382,44 @@ export default function UsersPage() {
                           </div>
                         </div>
                         <div className="ml-4">
-                          <div className="text-sm font-medium text-gray-900">{user.firstName} {user.lastName}</div>
+                          <div className="text-sm font-medium text-gray-900">{user?.firstName || 'Unknown'} {user?.lastName || 'User'}</div>
                           <div className="text-sm text-gray-500 flex items-center">
                             <Mail className="h-3 w-3 mr-1" />
-                            {user.email}
+                            {user?.email || 'No email'}
                           </div>
                         </div>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
-                        <span className={getRoleBadge(user.role)}>
-                          {user.role.replace('_', ' ')}
+                        <span className={getRoleBadge(user?.role || 'unknown')}>
+                          {(user?.role || 'unknown').replace('_', ' ')}
                         </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex items-center">
-                        {getStatusIcon(user.isActive ? 'active' : 'inactive')}
-                        <span className="ml-2">{getStatusBadge(user.isActive ? 'active' : 'inactive')}</span>
+                        {getStatusIcon(user?.isActive ? 'active' : 'inactive')}
+                        <span className="ml-2">{getStatusBadge(user?.isActive ? 'active' : 'inactive')}</span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       <div className="flex items-center">
                         <Calendar className="h-3 w-3 mr-1 text-gray-400" />
-                        {new Date(user.createdAt).toLocaleDateString()}
+                        {user?.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'Unknown'}
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                      {user.phoneNumber || 'N/A'}
+                      {user?.phoneNumber || 'N/A'}
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
                         <button 
-                          onClick={() => handleToggleStatus(user.id, user.isActive, `${user.firstName} ${user.lastName}`)}
-                          className={`${user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}`}
-                          title={user.isActive ? 'Suspend User' : 'Activate User'}
+                          onClick={() => handleToggleStatus(user?.id || '', user?.isActive || false, `${user?.firstName || 'Unknown'} ${user?.lastName || 'User'}`)}
+                          className={`${user?.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}`}
+                          title={user?.isActive ? 'Suspend User' : 'Activate User'}
                         >
-                          {user.isActive ? (
+                          {user?.isActive ? (
                             <XCircle className="h-4 w-4" />
                           ) : (
                             <CheckCircle className="h-4 w-4" />
@@ -427,7 +427,7 @@ export default function UsersPage() {
                         </button>
                         {isSuperAdmin && (
                           <button 
-                            onClick={() => handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
+                            onClick={() => handleDeleteUser(user?.id || '', `${user?.firstName || 'Unknown'} ${user?.lastName || 'User'}`)}
                             className="text-red-600 hover:text-red-900" 
                             title="Delete User"
                           >
