@@ -198,7 +198,7 @@ function hasPermission(userRoles: UserRole[], permission: Permission): boolean {
 export function usePermissions() {
   const user = useSelector((state: RootState) => state.adminAuth.user)
   
-  const userRoles: UserRole[] = (user?.roles || []) as UserRole[]
+  const userRoles: UserRole[] = (user?.role ? [user.role] : []) as UserRole[]
   const userPermissions: Permission[] = (user?.permissions || []) as Permission[]
   
   // Use permissions from backend if available, otherwise calculate from roles
