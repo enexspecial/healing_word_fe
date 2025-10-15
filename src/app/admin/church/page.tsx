@@ -20,52 +20,79 @@ import {
 } from "lucide-react";
 import { adminApiService } from "@/lib/services/adminApiService";
 
-interface ChurchInfo {
+// Interface matching the backend entity structure
+interface ChurchInfoDB {
   id: string;
   key: string;
   value: string;
   description?: string;
   aboutData?: {
-    mission?: string;
-    vision?: string;
+    missionStatement?: string;
+    visionStatement?: string;
     values?: string[];
+    history?: string;
+    leadership?: string;
   };
   servicesData?: {
     services: Array<{
-      id: string;
       name: string;
       description: string;
-      day: string;
       time: string;
+      dayOfWeek: string;
+      location?: string;
+      isActive?: boolean;
     }>;
   };
   contactData?: {
     address: string;
+    city: string;
+    state: string;
+    zipCode: string;
     phone: string;
-    email: string;
-    officeHours: string;
+    email?: string;
+    website?: string;
+    socialMedia?: {
+      facebook?: string;
+      instagram?: string;
+      twitter?: string;
+      youtube?: string;
+    };
+    officeHours?: { [key: string]: string };
   };
+  isActive: boolean;
+  createdAt: string;
+  updatedAt: string;
 }
 
 export default function ChurchInfoPage() {
   const [activeTab, setActiveTab] = useState("about");
   const [isEditing, setIsEditing] = useState(false);
   const [loading, setLoading] = useState(true);
-  const [churchInfo, setChurchInfo] = useState<ChurchInfo[]>([]);
+  const [churchInfo, setChurchInfo] = useState<ChurchInfoDB[]>([]);
   const [about, setAbout] = useState({
     mission: "To spread the love of Christ and build a strong community of believers.",
     vision: "To be a beacon of hope and healing in our community.",
     values: ["Faith", "Love", "Community", "Service", "Excellence"]
   });
   const [services, setServices] = useState([
-    { id: "1", name: "Sunday Worship", description: "Main worship service", day: "Sunday", time: "9:00 AM" },
-    { id: "2", name: "Wednesday Bible Study", description: "Mid-week Bible study", day: "Wednesday", time: "7:00 PM" },
+    { name: "Sunday Worship", description: "Main worship service", dayOfWeek: "Sunday", time: "9:00 AM", location: "Main Sanctuary", isActive: true },
+    { name: "Wednesday Bible Study", description: "Mid-week Bible study", dayOfWeek: "Wednesday", time: "7:00 PM", location: "Conference Room", isActive: true },
   ]);
   const [contact, setContact] = useState({
-    address: "123 Church Street, City, State 12345",
+    address: "123 Church Street",
+    city: "City",
+    state: "State",
+    zipCode: "12345",
     phone: "(555) 123-4567",
     email: "info@healingword.com",
-    officeHours: "Monday-Friday: 9:00 AM - 5:00 PM"
+    website: "https://healingword.com",
+    socialMedia: {
+      facebook: "",
+      instagram: "",
+      twitter: "",
+      youtube: ""
+    },
+    officeHours: { "Monday-Friday": "9:00 AM - 5:00 PM" }
   });
 
   useEffect(() => {
@@ -77,9 +104,9 @@ export default function ChurchInfoPage() {
       setLoading(true);
       const response = await adminApiService.getAllChurchInfo();
       if (response.success && response.data) {
-        setChurchInfo(response.data);
+        setChurchInfo(response.data as unknown as ChurchInfoDB[]);
         // Parse church info data
-        parseChurchData(response.data);
+        parseChurchData(response.data as unknown as ChurchInfoDB[]);
       }
     } catch (error) {
       console.error("Failed to load church info:", error);
@@ -88,16 +115,42 @@ export default function ChurchInfoPage() {
     }
   };
 
-  const parseChurchData = (data: ChurchInfo[]) => {
+  const parseChurchData = (data: ChurchInfoDB[]) => {
     data.forEach(item => {
       if (item.key === 'about' && item.aboutData) {
-        setAbout(item.aboutData);
+        setAbout({
+          mission: item.aboutData.missionStatement || "To spread the love of Christ and build a strong community of believers.",
+          vision: item.aboutData.visionStatement || "To be a beacon of hope and healing in our community.",
+          values: item.aboutData.values || ["Faith", "Love", "Community", "Service", "Excellence"]
+        });
       }
       if (item.key === 'services' && item.servicesData) {
-        setServices(item.servicesData.services);
+        setServices(item.servicesData.services.map(service => ({
+          name: service.name,
+          description: service.description,
+          dayOfWeek: service.dayOfWeek,
+          time: service.time,
+          location: service.location || "Main Sanctuary",
+          isActive: service.isActive ?? true
+        })));
       }
       if (item.key === 'contact' && item.contactData) {
-        setContact(item.contactData);
+        setContact({
+          address: item.contactData.address,
+          city: item.contactData.city,
+          state: item.contactData.state,
+          zipCode: item.contactData.zipCode,
+          phone: item.contactData.phone,
+          email: item.contactData.email || "info@healingword.com",
+          website: item.contactData.website || "https://healingword.com",
+          socialMedia: {
+            facebook: item.contactData.socialMedia?.facebook || "",
+            instagram: item.contactData.socialMedia?.instagram || "",
+            twitter: item.contactData.socialMedia?.twitter || "",
+            youtube: item.contactData.socialMedia?.youtube || ""
+          },
+          officeHours: item.contactData.officeHours || { "Monday-Friday": "9:00 AM - 5:00 PM" }
+        });
       }
     });
   };
@@ -107,13 +160,19 @@ export default function ChurchInfoPage() {
       // Update church info via API
       for (const item of churchInfo) {
         if (item.key === 'about') {
-          await adminApiService.updateChurchInfo(item.id, { aboutData: about });
+          await adminApiService.updateChurchInfo(item.id, { 
+          aboutData: {
+            missionStatement: about.mission,
+            visionStatement: about.vision,
+            values: about.values
+          }
+        } as any);
         }
         if (item.key === 'services') {
-          await adminApiService.updateChurchInfo(item.id, { servicesData: { services } });
+          await adminApiService.updateChurchInfo(item.id, { servicesData: { services } } as any);
         }
         if (item.key === 'contact') {
-          await adminApiService.updateChurchInfo(item.id, { contactData: contact });
+          await adminApiService.updateChurchInfo(item.id, { contactData: contact } as any);
         }
       }
       setIsEditing(false);
