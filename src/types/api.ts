@@ -40,7 +40,8 @@ export interface User {
   email: string
   firstName: string
   lastName: string
-  roles: string[] | string // Backend returns string, but we want to support array too
+  role: string
+  permissions?: string[]
   phone?: string
   phoneNumber?: string // Keep both for compatibility
   profileImageUrl?: string
@@ -219,11 +220,11 @@ export interface ActivityItem {
 
 export interface CreateUserDto {
   email: string
-  password: string
   firstName: string
   lastName: string
-  phoneNumber?: string
-  role: string
+  phone?: string
+  role?: string
+  // password is optional - AuthService will generate temporary password
 }
 
 export interface UpdateUserDto {
@@ -236,8 +237,8 @@ export interface UpdateUserStatusDto {
   isActive: boolean
 }
 
-export interface AssignUserRolesDto {
-  roles: string[]
+export interface AssignUserRoleDto {
+  role: string
 }
 
 export interface UserActivity {
@@ -460,4 +461,42 @@ export interface UpdateChurchInfoDto {
     instagram?: string
     youtube?: string
   }
+}
+
+// Contact Submission Types
+export type ContactSubmissionStatus = 'new' | 'read' | 'in_progress' | 'resolved' | 'archived'
+
+export interface ContactSubmission {
+  id: string
+  fullName: string
+  whatsappNumber: string
+  message: string
+  status: ContactSubmissionStatus
+  respondedBy?: string
+  notes?: string
+  isEmailSent: boolean
+  ipAddress?: string
+  userAgent?: string
+  createdAt: string
+  updatedAt: string
+  deletedAt?: string
+}
+
+export interface ContactSubmissionQuery {
+  status?: ContactSubmissionStatus
+  search?: string
+}
+
+export interface UpdateContactSubmissionDto {
+  status?: ContactSubmissionStatus
+  respondedBy?: string
+  notes?: string
+}
+
+export interface ContactStats {
+  total: number
+  new: number
+  read: number
+  inProgress: number
+  resolved: number
 }

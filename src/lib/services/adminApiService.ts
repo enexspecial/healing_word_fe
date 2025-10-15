@@ -9,7 +9,7 @@ import {
   CreateUserDto,
   UpdateUserDto,
   UpdateUserStatusDto,
-  AssignUserRolesDto,
+  AssignUserRoleDto,
   UserActivity,
   UserStats,
   Resource,
@@ -36,7 +36,9 @@ import {
   StreamSchedule,
   ChurchInfo,
   CreateChurchInfoDto,
-  UpdateChurchInfoDto
+  UpdateChurchInfoDto,
+  ContactSubmission,
+  ContactStats
 } from '@/types/api'
 
 class AdminApiService {
@@ -115,7 +117,7 @@ class AdminApiService {
     }
     
     const data = await response.json()
-    return { success: true, data }
+    return data
   }
 
   // Dashboard API
@@ -204,11 +206,11 @@ class AdminApiService {
     return this.handleResponse<User>(response)
   }
 
-  async assignUserRoles(id: string, rolesData: AssignUserRolesDto): Promise<ApiResponse<User>> {
-    const response = await fetch(`${this.baseUrl}/api/admin/users/${id}/roles`, {
+  async assignUserRole(id: string, roleData: AssignUserRoleDto): Promise<ApiResponse<User>> {
+    const response = await fetch(`${this.baseUrl}/api/admin/users/${id}/role`, {
       method: 'POST',
       headers: this.getHeaders(),
-      body: JSON.stringify(rolesData),
+      body: JSON.stringify(roleData),
     })
     return this.handleResponse<User>(response)
   }
@@ -601,6 +603,239 @@ class AdminApiService {
       headers: this.getHeaders(),
     })
     return this.handleResponse<void>(response)
+  }
+
+  // Departments API
+  async getAllDepartments(): Promise<ApiResponse<any[]>> {
+    const response = await fetch(`${this.baseUrl}/api/departments`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any[]>(response)
+  }
+
+  async getDepartmentById(id: string): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/departments/${id}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async createDepartment(data: any): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/departments`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async updateDepartment(id: string, data: any): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/departments/${id}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async deleteDepartment(id: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${this.baseUrl}/api/departments/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<void>(response)
+  }
+
+  // Reports API
+  async getAllReports(): Promise<ApiResponse<any[]>> {
+    const response = await fetch(`${this.baseUrl}/api/reports?t=${Date.now()}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any[]>(response)
+  }
+
+  async getReportById(id: string): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/${id}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async getReportStats(): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/stats`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async createReport(data: any): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async updateReport(id: string, data: any): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/${id}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async deleteReport(id: string): Promise<ApiResponse<void>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<void>(response)
+  }
+
+  // User Search API for Department Head Selection
+  async searchUsers(query: string, limit: number = 10): Promise<ApiResponse<any[]>> {
+    const url = `${this.baseUrl}/api/admin/users?search=${encodeURIComponent(query)}&limit=${limit}&isActive=true`
+    console.log('Searching users with URL:', url)
+    
+    const response = await fetch(url, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+    
+    console.log('User search response status:', response.status)
+    
+    const result = await this.handleResponse<any>(response)
+    console.log('User search result:', result)
+    
+    // Handle the paginated response structure
+    if (result.success && result.data) {
+      const actualData = result.data.users || result.data
+      console.log('Actual user data:', actualData)
+      return {
+        success: true,
+        data: Array.isArray(actualData) ? actualData : [],
+        message: result.message
+      }
+    }
+    
+    return result
+  }
+
+  async approveReport(id: string): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/${id}/approve`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  async rejectReport(id: string, rejectionReason: string): Promise<ApiResponse<any>> {
+    const response = await fetch(`${this.baseUrl}/api/reports/${id}/reject`, {
+      method: 'POST',
+      headers: this.getHeaders(),
+      body: JSON.stringify({ rejectionReason }),
+    })
+    
+    return this.handleResponse<any>(response)
+  }
+
+  // ==================== Contact Submissions API ====================
+
+  /**
+   * Get all contact submissions with optional filters
+   */
+  async getAllContactSubmissions(query?: {
+    status?: 'new' | 'read' | 'in_progress' | 'resolved' | 'archived'
+    search?: string
+  }): Promise<ApiResponse<ContactSubmission[]>> {
+    const params = new URLSearchParams()
+    if (query?.status) params.append('status', query.status)
+    if (query?.search) params.append('search', query.search)
+
+    const response = await fetch(
+      `${this.baseUrl}/api/contact?${params.toString()}`,
+      {
+        method: 'GET',
+        headers: this.getHeaders(),
+      }
+    )
+
+    return this.handleResponse<ContactSubmission[]>(response)
+  }
+
+  /**
+   * Get contact submission statistics
+   */
+  async getContactStatistics(): Promise<ApiResponse<ContactStats>> {
+    const response = await fetch(`${this.baseUrl}/api/contact/statistics`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    return this.handleResponse<ContactStats>(response)
+  }
+
+  /**
+   * Get single contact submission by ID
+   */
+  async getContactSubmission(id: string): Promise<ApiResponse<ContactSubmission>> {
+    const response = await fetch(`${this.baseUrl}/api/contact/${id}`, {
+      method: 'GET',
+      headers: this.getHeaders(),
+    })
+
+    return this.handleResponse<ContactSubmission>(response)
+  }
+
+  /**
+   * Update contact submission
+   */
+  async updateContactSubmission(
+    id: string,
+    data: {
+      status?: 'new' | 'read' | 'in_progress' | 'resolved' | 'archived'
+      notes?: string
+      respondedBy?: string
+    }
+  ): Promise<ApiResponse<ContactSubmission>> {
+    const response = await fetch(`${this.baseUrl}/api/contact/${id}`, {
+      method: 'PATCH',
+      headers: this.getHeaders(),
+      body: JSON.stringify(data),
+    })
+
+    return this.handleResponse<ContactSubmission>(response)
+  }
+
+  /**
+   * Delete contact submission
+   */
+  async deleteContactSubmission(id: string): Promise<ApiResponse<null>> {
+    const response = await fetch(`${this.baseUrl}/api/contact/${id}`, {
+      method: 'DELETE',
+      headers: this.getHeaders(),
+    })
+
+    return this.handleResponse<null>(response)
   }
 }
 

@@ -4,211 +4,249 @@ import { useState, useEffect } from 'react'
 import { 
   Plus, 
   Search, 
-  Download, 
   Edit, 
   Trash2, 
   Eye,
-  MoreHorizontal,
-  BookOpen,
+  Star,
+  Calendar,
+  User,
   FileText,
-  Image as ImageIcon,
   X,
-  Upload,
+  Download,
+  TrendingUp
 } from 'lucide-react'
-import { useCategories, useResourceOperations, useResourcesOverview } from '@/lib/hooks/useAdminApi'
-import { Resource, CreateResourceDto, Category } from '@/types/api'
+import { adminApiService } from '@/lib/services/adminApiService'
+import { usePermissions } from '@/lib/hooks/usePermissions'
 
-
+interface Resource {
+  id: string
+  title: string
+  description?: string
+  type: string
+  category?: any
+  author?: any
+  file?: any
+  coverImage?: any
+  isNew: boolean
+  isPopular: boolean
+  createdAt: string
+  updatedAt: string
+}
 
 export default function ResourcesPage() {
-  const [searchTerm, setSearchTerm] = useState('')
-  const [selectedCategory, setSelectedCategory] = useState('All')
-  const [selectedStatus, setSelectedStatus] = useState('All')
-  const [showAddModal, setShowAddModal] = useState(false)
-  const [categories, setCategories] = useState<Category[]>([])
+  const { can, hasAnyRole } = usePermissions()
   const [resources, setResources] = useState<Resource[]>([])
-  const [isLoading, setIsLoading] = useState(false)
-  const { data: categoriesData, loading: categoriesLoading, error: categoriesError, fetchCategories } = useCategories()
-  const { data: createResourceData, loading: createResourceLoading, error: createResourceError, createResource } = useResourceOperations()
-  const { data: resourcesData, loading: resourcesLoading, error: resourcesError, fetchOverview } = useResourcesOverview()
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [selectedFilter, setSelectedFilter] = useState('All')
+  const [currentPage, setCurrentPage] = useState(1)
+  const [pageSize, setPageSize] = useState(10)
+  const [totalPages, setTotalPages] = useState(0)
+  const [total, setTotal] = useState(0)
+  
+  const [showAddModal, setShowAddModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [showViewModal, setShowViewModal] = useState(false)
+  const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
-  // Form state
-  const [formData, setFormData] = useState<CreateResourceDto>({
+  const [formData, setFormData] = useState({
     title: '',
     description: '',
-    type: 'devotional', // Use valid enum value
+    type: 'devotional' as 'devotional' | 'bible_study' | 'sermon_transcript' | 'prayer_guide' | 'youth_ministry' | 'family_resource',
     categoryId: '',
-    fileId: ''
+    fileId: '',
+    isNew: false,
+    isPopular: false
   })
-  const [fileUpload, setFileUpload] = useState<File | null>(null)
-  const [uploadProgress, setUploadProgress] = useState(0)
 
-  // Load categories and resources on component mount
   useEffect(() => {
-    loadCategories()
     loadResources()
-  }, [])
-
-  const loadCategories = async () => {
-    try {
-      const response = await fetchCategories()
-      if (response.success && response.data) {
-        // Ensure we always set an array, even if empty
-        setCategories(Array.isArray(response.data) ? response.data : [])
-      } else {
-        console.warn('Categories API returned no data or failed')
-        setCategories([])
-      }
-    } catch (error) {
-      console.error('Failed to load categories:', error)
-      setCategories([])
-    }
-  }
+  }, [currentPage, pageSize, searchTerm, selectedFilter])
 
   const loadResources = async () => {
+    setLoading(true)
+    setError(null)
+    
     try {
-      const response = await fetchOverview()
-      if (response.success && response.data?.popularResources) {
-        setResources(response.data.popularResources)
+      const result = await adminApiService.getResources(currentPage, pageSize)
+      
+      if (result.success && result.data) {
+        const resourcesData = result.data.data || []
+        setResources(resourcesData)
+        setTotal(result.data.total || 0)
+        setTotalPages(result.data.totalPages || 0)
       }
-    } catch (error) {
-      console.error('Failed to load resources:', error)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to load resources')
+    } finally {
+      setLoading(false)
     }
   }
 
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (file) {
-      setFileUpload(file)
-    }
-  }
-
-  const handleInputChange = (field: keyof CreateResourceDto, value: string) => {
+  const handleInputChange = (field: string, value: any) => {
     setFormData(prev => ({
       ...prev,
       [field]: value
     }))
   }
 
-  const uploadFile = async (file: File): Promise<string> => {
-    // Simulate file upload - in real implementation, this would call the file upload API
-    return new Promise((resolve) => {
-      let progress = 0
-      const interval = setInterval(() => {
-        progress += 10
-        setUploadProgress(progress)
-        if (progress >= 100) {
-          clearInterval(interval)
-          // Return a mock file ID - in real implementation, this would be the actual file ID
-          resolve('mock-file-id-' + Date.now())
-        }
-      }, 100)
-    })
-  }
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault()
-    setIsLoading(true)
+    setIsSubmitting(true)
 
     try {
-      if (!fileUpload) {
-        alert('Please select a file to upload')
-        return
-      }
-
-      // Upload file first
-      const fileId = await uploadFile(fileUpload)
+      const result = await adminApiService.createResource(formData)
       
-      // Create resource with file ID
-      const resourceData: CreateResourceDto = {
-        ...formData,
-        fileId
-      }
-
-      const response = await createResource(resourceData)
-      
-      if (response.success) {
+      if (result.success) {
         alert('Resource created successfully!')
         setShowAddModal(false)
         resetForm()
-        // Refresh the resources list (you might want to implement this)
+        loadResources()
       } else {
-        alert('Failed to create resource: ' + response.error)
+        alert('Failed to create resource')
       }
-    } catch (error) {
-      console.error('Error creating resource:', error)
-      alert('An error occurred while creating the resource')
+    } catch (error: any) {
+      alert(error.message || 'An error occurred while creating the resource')
     } finally {
-      setIsLoading(false)
-      setUploadProgress(0)
+      setIsSubmitting(false)
     }
+  }
+
+  const handleUpdate = async (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!selectedResource) return
+    
+    setIsSubmitting(true)
+
+    try {
+      const result = await adminApiService.updateResource(selectedResource.id, formData)
+      
+      if (result.success) {
+        alert('Resource updated successfully!')
+        setShowEditModal(false)
+        resetForm()
+        loadResources()
+      } else {
+        alert('Failed to update resource')
+      }
+    } catch (error: any) {
+      alert(error.message || 'An error occurred while updating the resource')
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  const handleDelete = async (resourceId: string, resourceTitle: string) => {
+    if (!confirm(`Are you sure you want to delete "${resourceTitle}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const result = await adminApiService.deleteResource(resourceId)
+      
+      if (result.success) {
+        alert('Resource deleted successfully!')
+        loadResources()
+      } else {
+        alert('Failed to delete resource')
+      }
+    } catch (error: any) {
+      alert(error.message || 'An error occurred while deleting the resource')
+    }
+  }
+
+  const handleView = (resource: Resource) => {
+    setSelectedResource(resource)
+    setShowViewModal(true)
+  }
+
+  const handleEdit = (resource: Resource) => {
+    setSelectedResource(resource)
+    setFormData({
+      title: resource.title,
+      description: resource.description || '',
+      type: resource.type as 'devotional' | 'bible_study' | 'sermon_transcript' | 'prayer_guide' | 'youth_ministry' | 'family_resource',
+      categoryId: resource.category?.id || '',
+      fileId: resource.file?.id || '',
+      isNew: resource.isNew,
+      isPopular: resource.isPopular
+    })
+    setShowEditModal(true)
   }
 
   const resetForm = () => {
     setFormData({
       title: '',
       description: '',
-      type: 'devotional', // Use valid enum value
+      type: 'devotional' as 'devotional' | 'bible_study' | 'sermon_transcript' | 'prayer_guide' | 'youth_ministry' | 'family_resource',
       categoryId: '',
-      fileId: ''
+      fileId: '',
+      isNew: false,
+      isPopular: false
     })
-    setFileUpload(null)
-    setUploadProgress(0)
+    setSelectedResource(null)
   }
 
-  const closeModal = () => {
-    setShowAddModal(false)
-    resetForm()
-  }
-
-  const filteredResources = resources.filter((resource: Resource) => {
+  const filteredResources = resources.filter(resource => {
     const matchesSearch = resource.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         (resource.description?.toLowerCase() || '').includes(searchTerm.toLowerCase())
-    const matchesCategory = selectedCategory === 'All' || resource.categoryId === selectedCategory
-    const matchesStatus = selectedStatus === 'All' || 
-                         (selectedStatus === 'published' && resource.isNew) ||
-                         (selectedStatus === 'draft' && !resource.isNew)
+                         (resource.description || '').toLowerCase().includes(searchTerm.toLowerCase())
     
-    return matchesSearch && matchesCategory && matchesStatus
+    let matchesFilter = true
+    if (selectedFilter === 'New') matchesFilter = resource.isNew
+    if (selectedFilter === 'Popular') matchesFilter = resource.isPopular
+    
+    return matchesSearch && matchesFilter
   })
 
-  const getFileTypeIcon = (type: string) => {
-    switch (type) {
-      case 'devotional':
-        return <BookOpen className="h-4 w-4 text-blue-500" />
-      case 'bible_study':
-        return <FileText className="h-4 w-4 text-red-500" />
-      case 'sermon_transcript':
-        return <FileText className="h-4 w-4 text-green-500" />
-      case 'prayer_guide':
-        return <FileText className="h-4 w-4 text-purple-500" />
-      case 'youth_ministry':
-        return <FileText className="h-4 w-4 text-yellow-500" />
-      case 'family_resource':
-        return <FileText className="h-4 w-4 text-gray-500" />
-      default:
-        return <FileText className="h-4 w-4 text-gray-500" />
+  const getTypeBadge = (type: string) => {
+    const types: Record<string, string> = {
+      devotional: 'bg-blue-100 text-blue-800',
+      bible_study: 'bg-green-100 text-green-800',
+      sermon_transcript: 'bg-purple-100 text-purple-800',
+      prayer_guide: 'bg-yellow-100 text-yellow-800',
+      youth_ministry: 'bg-pink-100 text-pink-800',
+      family_resource: 'bg-indigo-100 text-indigo-800'
     }
+    
+    return `inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+      types[type] || 'bg-gray-100 text-gray-800'
+    }`
+  }
+
+  const formatTypeName = (type: string) => {
+    return type.split('_').map(word => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')
   }
 
   return (
     <div className="space-y-6">
-      {/* Page header */}
+      {/* Page Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Resources Management</h1>
-          <p className="text-gray-600">Manage all church resources, devotionals, and study materials.</p>
+          <h1 className="text-2xl font-bold text-gray-900">Resource Management</h1>
+          <p className="text-gray-600">Manage church resources, sermons, and materials</p>
         </div>
-        <button 
-          onClick={() => setShowAddModal(true)}
-          className="mt-4 sm:mt-0 bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
-        >
-          <Plus className="h-4 w-4 mr-2" />
-          Add New Resource
-        </button>
+        <div className="flex gap-2 mt-4 sm:mt-0">
+          <button 
+            onClick={loadResources}
+            disabled={loading}
+            className="bg-gray-600 text-white px-4 py-2 rounded-md hover:bg-gray-700 transition-colors flex items-center disabled:opacity-50"
+          >
+            <div className={`h-4 w-4 mr-2 ${loading ? 'animate-spin rounded-full border-b-2 border-white' : ''}`}></div>
+            Refresh
+          </button>
+          <button 
+            onClick={() => setShowAddModal(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Resource
+          </button>
+        </div>
       </div>
 
-      {/* Filters and search */}
+      {/* Filters and Search */}
       <div className="bg-white p-4 rounded-lg shadow">
         <div className="flex flex-col sm:flex-row gap-4">
           <div className="flex-1">
@@ -225,78 +263,31 @@ export default function ResourcesPage() {
           </div>
           <div className="flex gap-2">
             <select
-              value={selectedCategory}
-              onChange={(e) => setSelectedCategory(e.target.value)}
+              value={selectedFilter}
+              onChange={(e) => setSelectedFilter(e.target.value)}
               className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-label="Filter by category"
-              disabled={categoriesLoading}
+              title="Filter resources"
+              aria-label="Filter resources"
             >
-              <option value="All">All Categories</option>
-              {categoriesLoading ? (
-                <option value="" disabled>Loading categories...</option>
-              ) : Array.isArray(categories) && categories.length > 0 ? (
-                categories.map(category => (
-                  <option key={category.id} value={category.id}>{category.name}</option>
-                ))
-              ) : (
-                <option value="" disabled>No categories available</option>
-              )}
-            </select>
-            <select
-              value={selectedStatus}
-              onChange={(e) => setSelectedStatus(e.target.value)}
-              className="px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-              aria-label="Filter by status"
-            >
-              <option value="All">All Status</option>
-              <option value="published">Published</option>
-              <option value="draft">Draft</option>
+              <option value="All">All Resources</option>
+              <option value="New">New Resources</option>
+              <option value="Popular">Popular Resources</option>
             </select>
           </div>
         </div>
-        
-        {/* Categories loading/error state */}
-        {categoriesLoading && (
-          <div className="mt-3 text-sm text-blue-600">
-            <div className="flex items-center">
-              <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600 mr-2"></div>
-              Loading categories...
-            </div>
-          </div>
-        )}
-        {!categoriesLoading && categoriesError && (
-          <div className="mt-3 text-sm text-red-600">
-            Error loading categories: {categoriesError}
-          </div>
-        )}
-        {!categoriesLoading && !categoriesError && Array.isArray(categories) && categories.length === 0 && (
-          <div className="mt-3 text-sm text-yellow-600">
-            No categories available. Please create some categories first.
-          </div>
-        )}
       </div>
 
-      {/* Resources table */}
+      {/* Resources Table */}
       <div className="bg-white shadow rounded-lg overflow-hidden">
         <div className="px-4 py-5 sm:p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h3 className="text-lg font-medium text-gray-900">
-              Resources ({filteredResources.length})
-            </h3>
-            <div className="flex items-center space-x-2 text-sm text-gray-500">
-              <Download className="h-4 w-4" />
-              <span>Total Resources: {resources.length}</span>
-            </div>
-          </div>
-          
-          {resourcesLoading ? (
+          {loading ? (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600 mx-auto"></div>
               <p className="mt-2 text-gray-600">Loading resources...</p>
             </div>
-          ) : resourcesError ? (
+          ) : error ? (
             <div className="text-center py-8">
-              <p className="text-red-600">Error loading resources: {resourcesError}</p>
+              <p className="text-red-600">{error}</p>
             </div>
           ) : filteredResources.length === 0 ? (
             <div className="text-center py-8">
@@ -311,16 +302,16 @@ export default function ResourcesPage() {
                       Resource
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Category
-                    </th>
-                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Type
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                      Created
+                      Category
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Status
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Created
                     </th>
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Actions
@@ -328,66 +319,74 @@ export default function ResourcesPage() {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
-                  {filteredResources.map((resource: Resource) => (
+                  {filteredResources.map((resource) => (
                     <tr key={resource.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 whitespace-nowrap">
+                      <td className="px-6 py-4">
                         <div className="flex items-center">
                           <div className="flex-shrink-0 h-10 w-10">
-                            <div className="h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
-                              {getFileTypeIcon(resource.type)}
+                            <div className="h-10 w-10 rounded bg-gray-200 flex items-center justify-center">
+                              <FileText className="h-5 w-5 text-gray-500" />
                             </div>
                           </div>
                           <div className="ml-4">
                             <div className="text-sm font-medium text-gray-900">{resource.title}</div>
-                            <div className="text-sm text-gray-500">
-                              {(resource.description?.length || 0) > 50 ? (resource.description?.substring(0, 50) || '') + '...' : (resource.description || 'No description')}
+                            <div className="text-sm text-gray-500 truncate max-w-xs">
+                              {resource.description || 'No description'}
                             </div>
                           </div>
                         </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                          {categories.find(cat => cat.id === resource.categoryId)?.name || 'Unknown'}
+                        <span className={getTypeBadge(resource.type)}>
+                          {formatTypeName(resource.type)}
                         </span>
-                      </td>
-                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 capitalize">
-                        {resource.type}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                        {new Date(resource.createdAt).toLocaleDateString()}
+                        {resource.category?.name || 'Uncategorized'}
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap">
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                          resource.isNew ? 'bg-green-100 text-green-800' : 'bg-gray-100 text-gray-800'
-                        }`}>
-                          {resource.isNew ? 'New' : 'Standard'}
-                        </span>
+                        <div className="flex gap-1">
+                          {resource.isNew && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                              New
+                            </span>
+                          )}
+                          {resource.isPopular && (
+                            <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                              <Star className="h-3 w-3 mr-1" />
+                              Popular
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                        <div className="flex items-center">
+                          <Calendar className="h-3 w-3 mr-1 text-gray-400" />
+                          {new Date(resource.createdAt).toLocaleDateString()}
+                        </div>
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                         <div className="flex items-center space-x-2">
                           <button 
-                            className="text-blue-600 hover:text-blue-900"
-                            title="View resource"
+                            onClick={() => handleView(resource)}
+                            className="text-blue-600 hover:text-blue-900" 
+                            title="View Resource"
                           >
                             <Eye className="h-4 w-4" />
                           </button>
                           <button 
-                            className="text-indigo-600 hover:text-indigo-900"
-                            title="Edit resource"
+                            onClick={() => handleEdit(resource)}
+                            className="text-indigo-600 hover:text-indigo-900" 
+                            title="Edit Resource"
                           >
                             <Edit className="h-4 w-4" />
                           </button>
                           <button 
-                            className="text-red-600 hover:text-red-900"
-                            title="Delete resource"
+                            onClick={() => handleDelete(resource.id, resource.title)}
+                            className="text-red-600 hover:text-red-900" 
+                            title="Delete Resource"
                           >
                             <Trash2 className="h-4 w-4" />
-                          </button>
-                          <button 
-                            className="text-gray-400 hover:text-gray-600"
-                            title="More options"
-                          >
-                            <MoreHorizontal className="h-4 w-4" />
                           </button>
                         </div>
                       </td>
@@ -407,22 +406,25 @@ export default function ResourcesPage() {
             <div className="flex items-center justify-between mb-4">
               <h3 className="text-lg font-medium text-gray-900">Add New Resource</h3>
               <button
-                onClick={closeModal}
+                onClick={() => {
+                  setShowAddModal(false)
+                  resetForm()
+                }}
                 className="text-gray-400 hover:text-gray-600"
+                title="Close Modal"
+                aria-label="Close Modal"
               >
                 <X className="h-6 w-6" />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Title */}
+            <form onSubmit={handleCreate} className="space-y-4">
               <div>
-                <label htmlFor="title" className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Title *
                 </label>
                 <input
                   type="text"
-                  id="title"
                   required
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
@@ -431,34 +433,32 @@ export default function ResourcesPage() {
                 />
               </div>
 
-              {/* Description */}
               <div>
-                <label htmlFor="description" className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Description *
                 </label>
                 <textarea
-                  id="description"
                   required
-                  rows={3}
                   value={formData.description}
                   onChange={(e) => handleInputChange('description', e.target.value)}
                   className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Enter resource description"
+                  rows={3}
                 />
               </div>
 
-              {/* Type and Category */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
-                  <label htmlFor="type" className="block text-sm font-medium text-gray-700 mb-1">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
                     Type *
                   </label>
                   <select
-                    id="type"
                     required
                     value={formData.type}
                     onChange={(e) => handleInputChange('type', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    title="Select resource type"
+                    aria-label="Select resource type"
                   >
                     <option value="devotional">Devotional</option>
                     <option value="bible_study">Bible Study</option>
@@ -470,116 +470,289 @@ export default function ResourcesPage() {
                 </div>
 
                 <div>
-                  <label htmlFor="categoryId" className="block text-sm font-medium text-gray-700 mb-1">
-                    Category *
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
                   </label>
-                  <select
-                    id="categoryId"
-                    required
+                  <input
+                    type="text"
                     value={formData.categoryId}
                     onChange={(e) => handleInputChange('categoryId', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  >
-                    <option value="">Select a category</option>
-                    {Array.isArray(categories) && categories.length > 0 ? (
-                      categories.map(category => (
-                        <option key={category.id} value={category.id}>
-                          {category.name}
-                        </option>
-                      ))
-                    ) : (
-                      <option value="" disabled>No categories available</option>
-                    )}
-                  </select>
+                    placeholder="Category ID"
+                    title="Enter category ID"
+                    aria-label="Category ID"
+                  />
                 </div>
               </div>
 
-              {/* File Upload */}
-              <div>
-                <label htmlFor="file" className="block text-sm font-medium text-gray-700 mb-1">
-                  File *
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isNew}
+                    onChange={(e) => handleInputChange('isNew', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Mark as New</span>
                 </label>
-                <div className="border-2 border-dashed border-gray-300 rounded-lg p-6 text-center">
-                  {fileUpload ? (
-                    <div className="space-y-2">
-                      <div className="flex items-center justify-center space-x-2">
-                        <FileText className="h-8 w-8 text-blue-500" />
-                        <span className="text-sm font-medium text-gray-900">{fileUpload.name}</span>
-                      </div>
-                      <p className="text-sm text-gray-500">
-                        Size: {(fileUpload.size / 1024 / 1024).toFixed(2)} MB
-                      </p>
-                      {uploadProgress > 0 && uploadProgress < 100 && (
-                        <div className="w-full bg-gray-200 rounded-full h-2">
-                          <div 
-                            className="bg-blue-600 h-2 rounded-full transition-all duration-300"
-                            style={{ width: `${uploadProgress}%` }}
-                          ></div>
-                        </div>
-                      )}
-                      <button
-                        type="button"
-                        onClick={() => setFileUpload(null)}
-                        className="text-sm text-red-600 hover:text-red-800"
-                      >
-                        Remove file
-                      </button>
-                    </div>
-                  ) : (
-                    <div>
-                      <Upload className="mx-auto h-12 w-12 text-gray-400" />
-                      <div className="mt-2">
-                        <label htmlFor="file-upload" className="cursor-pointer">
-                          <span className="text-blue-600 hover:text-blue-500 font-medium">
-                            Click to upload
-                          </span>
-                          <span className="text-gray-500"> or drag and drop</span>
-                        </label>
-                        <input
-                          id="file-upload"
-                          name="file-upload"
-                          type="file"
-                          className="sr-only"
-                          onChange={handleFileChange}
-                          accept=".pdf,.doc,.docx,.mp4,.mp3,.txt"
-                        />
-                      </div>
-                      <p className="text-xs text-gray-500 mt-1">
-                        PDF, DOC, MP4, MP3, TXT up to 50MB
-                      </p>
-                    </div>
-                  )}
-                </div>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPopular}
+                    onChange={(e) => handleInputChange('isPopular', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Mark as Popular</span>
+                </label>
               </div>
 
-              {/* Form Actions */}
               <div className="flex justify-end space-x-3 pt-4">
                 <button
                   type="button"
-                  onClick={closeModal}
-                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  onClick={() => {
+                    setShowAddModal(false)
+                    resetForm()
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
                 >
                   Cancel
                 </button>
                 <button
                   type="submit"
-                  disabled={isLoading || !fileUpload}
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
                 >
-                  {isLoading ? (
-                    <>
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                      Creating...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="h-4 w-4 mr-2" />
-                      Create Resource
-                    </>
-                  )}
+                  {isSubmitting ? 'Creating...' : 'Create Resource'}
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Edit Resource Modal */}
+      {showEditModal && selectedResource && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Edit Resource</h3>
+              <button
+                onClick={() => {
+                  setShowEditModal(false)
+                  resetForm()
+                }}
+                className="text-gray-400 hover:text-gray-600"
+                title="Close Modal"
+                aria-label="Close Modal"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <form onSubmit={handleUpdate} className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Title *
+                </label>
+                <input
+                  type="text"
+                  required
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Enter resource title"
+                  title="Resource title"
+                  aria-label="Resource title"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Description *
+                </label>
+                <textarea
+                  required
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  rows={3}
+                  placeholder="Enter resource description"
+                  title="Resource description"
+                  aria-label="Resource description"
+                />
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Type *
+                  </label>
+                  <select
+                    required
+                    value={formData.type}
+                    onChange={(e) => handleInputChange('type', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    title="Select resource type"
+                    aria-label="Select resource type"
+                  >
+                    <option value="devotional">Devotional</option>
+                    <option value="bible_study">Bible Study</option>
+                    <option value="sermon_transcript">Sermon Transcript</option>
+                    <option value="prayer_guide">Prayer Guide</option>
+                    <option value="youth_ministry">Youth Ministry</option>
+                    <option value="family_resource">Family Resource</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Category
+                  </label>
+                  <input
+                    type="text"
+                    value={formData.categoryId}
+                    onChange={(e) => handleInputChange('categoryId', e.target.value)}
+                    className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Category ID"
+                    title="Enter category ID"
+                    aria-label="Category ID"
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-4">
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isNew}
+                    onChange={(e) => handleInputChange('isNew', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Mark as New</span>
+                </label>
+
+                <label className="flex items-center">
+                  <input
+                    type="checkbox"
+                    checked={formData.isPopular}
+                    onChange={(e) => handleInputChange('isPopular', e.target.checked)}
+                    className="rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span className="ml-2 text-sm text-gray-700">Mark as Popular</span>
+                </label>
+              </div>
+
+              <div className="flex justify-end space-x-3 pt-4">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowEditModal(false)
+                    resetForm()
+                  }}
+                  className="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={isSubmitting}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:opacity-50"
+                >
+                  {isSubmitting ? 'Updating...' : 'Update Resource'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* View Resource Modal */}
+      {showViewModal && selectedResource && (
+        <div className="fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+          <div className="relative top-20 mx-auto p-5 border w-11/12 md:w-3/4 lg:w-1/2 shadow-lg rounded-md bg-white">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-lg font-medium text-gray-900">Resource Details</h3>
+              <button
+                onClick={() => {
+                  setShowViewModal(false)
+                  setSelectedResource(null)
+                }}
+                className="text-gray-400 hover:text-gray-600"
+                title="Close Modal"
+                aria-label="Close Modal"
+              >
+                <X className="h-6 w-6" />
+              </button>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Title</label>
+                <p className="mt-1 text-gray-900">{selectedResource.title}</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Description</label>
+                <p className="mt-1 text-gray-900">{selectedResource.description || 'No description'}</p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Type</label>
+                  <p className="mt-1">
+                    <span className={getTypeBadge(selectedResource.type)}>
+                      {formatTypeName(selectedResource.type)}
+                    </span>
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Category</label>
+                  <p className="mt-1 text-gray-900">{selectedResource.category?.name || 'Uncategorized'}</p>
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Status</label>
+                <div className="mt-1 flex gap-2">
+                  {selectedResource.isNew && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800">
+                      New
+                    </span>
+                  )}
+                  {selectedResource.isPopular && (
+                    <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-yellow-100 text-yellow-800">
+                      <Star className="h-3 w-3 mr-1" />
+                      Popular
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700">Author</label>
+                <p className="mt-1 text-gray-900">
+                  {selectedResource.author?.firstName} {selectedResource.author?.lastName}
+                </p>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Created</label>
+                  <p className="mt-1 text-gray-900">
+                    {new Date(selectedResource.createdAt).toLocaleString()}
+                  </p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700">Updated</label>
+                  <p className="mt-1 text-gray-900">
+                    {new Date(selectedResource.updatedAt).toLocaleString()}
+                  </p>
+                </div>
+              </div>
+            </div>
           </div>
         </div>
       )}

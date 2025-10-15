@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import {
   Save,
   Edit,
@@ -18,44 +18,122 @@ import {
   Target,
   History,
 } from "lucide-react";
-import { useAppSelector, useAppDispatch } from "@/lib/hooks";
-import {
-  setEditing,
-  updateAbout,
-  updateAboutValue,
-  updateService,
-  addService,
-  removeService,
-  updateStaff,
-  addStaff,
-  removeStaff,
-  updateContact,
-  resetToOriginal,
-} from "@/lib/slices/churchSlice";
+import { adminApiService } from "@/lib/services/adminApiService";
+
+interface ChurchInfo {
+  id: string;
+  key: string;
+  value: string;
+  description?: string;
+  aboutData?: {
+    mission?: string;
+    vision?: string;
+    values?: string[];
+  };
+  servicesData?: {
+    services: Array<{
+      id: string;
+      name: string;
+      description: string;
+      day: string;
+      time: string;
+    }>;
+  };
+  contactData?: {
+    address: string;
+    phone: string;
+    email: string;
+    officeHours: string;
+  };
+}
 
 export default function ChurchInfoPage() {
-  const dispatch = useAppDispatch();
-  const { about, services, contact, isEditing } = useAppSelector(
-    (state) => state.church
-  );
   const [activeTab, setActiveTab] = useState("about");
+  const [isEditing, setIsEditing] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [churchInfo, setChurchInfo] = useState<ChurchInfo[]>([]);
+  const [about, setAbout] = useState({
+    mission: "To spread the love of Christ and build a strong community of believers.",
+    vision: "To be a beacon of hope and healing in our community.",
+    values: ["Faith", "Love", "Community", "Service", "Excellence"]
+  });
+  const [services, setServices] = useState([
+    { id: "1", name: "Sunday Worship", description: "Main worship service", day: "Sunday", time: "9:00 AM" },
+    { id: "2", name: "Wednesday Bible Study", description: "Mid-week Bible study", day: "Wednesday", time: "7:00 PM" },
+  ]);
+  const [contact, setContact] = useState({
+    address: "123 Church Street, City, State 12345",
+    phone: "(555) 123-4567",
+    email: "info@healingword.com",
+    officeHours: "Monday-Friday: 9:00 AM - 5:00 PM"
+  });
+
+  useEffect(() => {
+    loadChurchInfo();
+  }, []);
+
+  const loadChurchInfo = async () => {
+    try {
+      setLoading(true);
+      const response = await adminApiService.getAllChurchInfo();
+      if (response.success && response.data) {
+        setChurchInfo(response.data);
+        // Parse church info data
+        parseChurchData(response.data);
+      }
+    } catch (error) {
+      console.error("Failed to load church info:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const parseChurchData = (data: ChurchInfo[]) => {
+    data.forEach(item => {
+      if (item.key === 'about' && item.aboutData) {
+        setAbout(item.aboutData);
+      }
+      if (item.key === 'services' && item.servicesData) {
+        setServices(item.servicesData.services);
+      }
+      if (item.key === 'contact' && item.contactData) {
+        setContact(item.contactData);
+      }
+    });
+  };
+
+  const handleSave = async () => {
+    try {
+      // Update church info via API
+      for (const item of churchInfo) {
+        if (item.key === 'about') {
+          await adminApiService.updateChurchInfo(item.id, { aboutData: about });
+        }
+        if (item.key === 'services') {
+          await adminApiService.updateChurchInfo(item.id, { servicesData: { services } });
+        }
+        if (item.key === 'contact') {
+          await adminApiService.updateChurchInfo(item.id, { contactData: contact });
+        }
+      }
+      setIsEditing(false);
+      alert("Church information saved successfully!");
+    } catch (error) {
+      console.error("Failed to save church info:", error);
+      alert("Failed to save church information");
+    }
+  };
+
+  const handleCancel = () => {
+    setIsEditing(false);
+    loadChurchInfo(); // Reload original data
+  };
 
   const tabs = [
     { id: "about", name: "About Us", icon: BookOpen },
     { id: "services", name: "Services", icon: Clock },
     { id: "contact", name: "Contact", icon: MapPin },
   ];
-
-  const handleSave = () => {
-    dispatch(setEditing(false));
-    // Here you would typically save to the backend
-    console.log("Saving church information:", { about, services, contact });
-  };
-
-  const handleCancel = () => {
-    dispatch(setEditing(false));
-    dispatch(resetToOriginal());
-  };
 
   const renderAboutTab = () => (
     <div className="space-y-6">
@@ -72,7 +150,7 @@ export default function ChurchInfoPage() {
               <textarea
                 value={about.mission}
                 onChange={(e) =>
-                  dispatch(updateAbout({ mission: e.target.value }))
+                  setAbout({ ...about, mission: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
@@ -92,7 +170,7 @@ export default function ChurchInfoPage() {
               <textarea
                 value={about.vision}
                 onChange={(e) =>
-                  dispatch(updateAbout({ vision: e.target.value }))
+                  setAbout({ ...about, vision: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 rows={3}
@@ -119,9 +197,11 @@ export default function ChurchInfoPage() {
                 <input
                   type="text"
                   value={value}
-                  onChange={(e) =>
-                    dispatch(updateAboutValue({ index, value: e.target.value }))
-                  }
+                  onChange={(e) => {
+                    const newValues = [...about.values];
+                    newValues[index] = e.target.value;
+                    setAbout({ ...about, values: newValues });
+                  }}
                   className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   aria-label={`Church value ${index + 1}`}
                 />
@@ -184,7 +264,7 @@ export default function ChurchInfoPage() {
                   </button>
                   <button
                     className="text-red-600 hover:text-red-900"
-                    onClick={() => dispatch(removeService(service.id))}
+                    onClick={() => setServices(services.filter(s => s.id !== service.id))}
                     aria-label={`Delete ${service.name}`}
                   >
                     <Trash2 className="h-4 w-4" />
@@ -214,7 +294,7 @@ export default function ChurchInfoPage() {
                 type="text"
                 value={contact.address}
                 onChange={(e) =>
-                  dispatch(updateContact({ address: e.target.value }))
+                  setContact({ ...contact, address: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 aria-label="Church address"
@@ -236,7 +316,7 @@ export default function ChurchInfoPage() {
                 type="text"
                 value={contact.phone}
                 onChange={(e) =>
-                  dispatch(updateContact({ phone: e.target.value }))
+                  setContact({ ...contact, phone: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 aria-label="Church phone number"
@@ -258,7 +338,7 @@ export default function ChurchInfoPage() {
                 type="email"
                 value={contact.email}
                 onChange={(e) =>
-                  dispatch(updateContact({ email: e.target.value }))
+                  setContact({ ...contact, email: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 aria-label="Church email address"
@@ -280,7 +360,7 @@ export default function ChurchInfoPage() {
                 type="text"
                 value={contact.officeHours}
                 onChange={(e) =>
-                  dispatch(updateContact({ officeHours: e.target.value }))
+                  setContact({ ...contact, officeHours: e.target.value })
                 }
                 className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 aria-label="Office hours"
@@ -296,6 +376,14 @@ export default function ChurchInfoPage() {
       </div>
     </div>
   );
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -328,7 +416,7 @@ export default function ChurchInfoPage() {
             </>
           ) : (
             <button
-              onClick={() => dispatch(setEditing(true))}
+              onClick={() => setIsEditing(true)}
               className="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700 transition-colors flex items-center"
             >
               <Edit className="h-4 w-4 mr-2" />

@@ -16,7 +16,8 @@ import {
   X,
   Bell,
   User,
-  BarChart3
+  BarChart3,
+  MessageSquare
 } from 'lucide-react'
 import Link from 'next/link'
 import ProtectedAdminRoute from '@/components/auth/ProtectedAdminRoute'
@@ -41,6 +42,8 @@ const navigation = [
   { name: 'Resources', href: '/admin/resources', icon: BookOpen },
   { name: 'Users', href: '/admin/users', icon: Users },
   // { name: 'Files', href: '/admin/files', icon: FileText },
+  { name: 'Reports', href: '/admin/reports', icon: FileText },
+  { name: 'Contact', href: '/admin/contact', icon: MessageSquare },
   { name: 'Live Streaming', href: '/admin/streaming', icon: Video },
   { name: 'Church Info', href: '/admin/church', icon: Church },
   { name: 'Settings', href: '/admin/settings', icon: Settings },

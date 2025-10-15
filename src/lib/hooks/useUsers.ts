@@ -167,6 +167,99 @@ export const useUsers = () => {
     }
   }, [])
 
+  const createUser = useCallback(async (userData: any): Promise<User | null> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      // Use adminApiService for creating users
+      const { adminApiService } = await import('../services/adminApiService')
+      const result = await adminApiService.createUser(userData)
+      
+      if (result.success && result.data) {
+        return result.data
+      } else {
+        setError(result.error || 'Failed to create user')
+        return null
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to create user'
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const deleteUser = useCallback(async (id: string): Promise<boolean> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { adminApiService } = await import('../services/adminApiService')
+      const result = await adminApiService.deleteUser(id)
+      
+      if (result.success) {
+        return true
+      } else {
+        setError(result.error || 'Failed to delete user')
+        return false
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to delete user'
+      setError(errorMessage)
+      return false
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const assignRole = useCallback(async (id: string, role: string): Promise<User | null> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { adminApiService } = await import('../services/adminApiService')
+      const result = await adminApiService.assignUserRole(id, { role })
+      
+      if (result.success && result.data) {
+        return result.data
+      } else {
+        setError(result.error || 'Failed to assign role')
+        return null
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to assign role'
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  const updateUserStatus = useCallback(async (id: string, isActive: boolean): Promise<User | null> => {
+    setLoading(true)
+    setError(null)
+    
+    try {
+      const { adminApiService } = await import('../services/adminApiService')
+      const result = await adminApiService.updateUserStatus(id, { isActive })
+      
+      if (result.success && result.data) {
+        return result.data
+      } else {
+        setError(result.error || 'Failed to update user status')
+        return null
+      }
+    } catch (err) {
+      const errorMessage = err instanceof Error ? err.message : 'Failed to update user status'
+      setError(errorMessage)
+      return null
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
   const clearError = useCallback(() => {
     setError(null)
   }, [])
@@ -181,6 +274,10 @@ export const useUsers = () => {
     searchUsers,
     getUsersByRole,
     getUserStats,
+    createUser,
+    deleteUser,
+    assignRole,
+    updateUserStatus,
     clearError
   }
 }

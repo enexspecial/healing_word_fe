@@ -5,6 +5,7 @@ import type { Metadata } from 'next'
 import Breadcrumb from '@/components/ui/Breadcrumb'
 import { generateBreadcrumbStructuredData } from '@/lib/breadcrumb-utils'
 import ContactForm from './ContactForm'
+import { publicApiService } from '@/lib/services/publicApiService'
 
 export const metadata: Metadata = generateMetadata({
   title: 'Contact Healing Word Christian Church - Get in Touch Today',
@@ -29,9 +30,30 @@ export const metadata: Metadata = generateMetadata({
   }
 })
 
-export default function ContactPage() {
+export default async function ContactPage() {
   const breadcrumbItems = [{ label: 'Contact Us' }]
   const breadcrumbStructuredData = generateBreadcrumbStructuredData(breadcrumbItems)
+
+  // Fetch contact info from backend (with fallback to hardcoded values)
+  let contactInfo = {
+    phone: '+2348144093507',
+    email: 'info@healing-word-church.org',
+    address: '6 Bella Crescent Behind Peridot Filling Station After Oba\'s Palace Iyana Ejigbo Lagos, Nigeria',
+  }
+
+  try {
+    const result = await publicApiService.getContactInfo()
+    if (result.success && result.data) {
+      contactInfo = {
+        phone: result.data.phone || contactInfo.phone,
+        email: result.data.email || contactInfo.email,
+        address: result.data.address || contactInfo.address,
+      }
+    }
+  } catch (error) {
+    // Use fallback values if API call fails
+    console.error('Failed to fetch contact info:', error)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -94,21 +116,21 @@ export default function ContactPage() {
                     <Phone className="w-6 h-6 text-blue-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Phone</h4>
-                  <p className="text-gray-600">+2348144093507</p>
+                  <p className="text-gray-600">{contactInfo.phone}</p>
                 </div>
                 <div className="text-center p-4">
                   <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <Mail className="w-6 h-6 text-green-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Email</h4>
-                  <p className="text-gray-600">info@healing-word-church.org</p>
+                  <p className="text-gray-600">{contactInfo.email}</p>
                 </div>
                 <div className="text-center p-4">
                   <div className="w-12 h-12 bg-purple-100 rounded-full flex items-center justify-center mx-auto mb-3">
                     <MapPin className="w-6 h-6 text-purple-600" />
                   </div>
                   <h4 className="font-semibold text-gray-900 mb-1">Address</h4>
-                  <p className="text-gray-600">6 Bella Crescent Behind Peridot Filling Station After Oba's Palace Iyana Ejigbo Lagos, Nigeria</p>
+                  <p className="text-gray-600">{contactInfo.address}</p>
                 </div>
               </div>
             </div>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { Send, CheckCircle, AlertCircle } from 'lucide-react'
+import { publicApiService } from '@/lib/services/publicApiService'
 
 export default function ContactForm() {
   // Form state
@@ -61,16 +62,9 @@ export default function ContactForm() {
     setSubmitStatus('idle')
     
     try {
-      // TODO: Replace with actual API endpoint
-      const response = await fetch('/api/contact', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      })
+      const result = await publicApiService.submitContactForm(formData)
       
-      if (response.ok) {
+      if (result.success) {
         setSubmitStatus('success')
         setFormData({ fullName: '', whatsappNumber: '', message: '' })
       } else {

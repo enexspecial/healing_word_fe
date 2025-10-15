@@ -22,7 +22,7 @@ export interface Stream {
 }
 
 class PublicApiService {
-  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'
+  private baseUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:4001'
 
   private async handleResponse<T>(response: Response): Promise<ApiResponse<T>> {
     if (!response.ok) {
@@ -179,6 +179,35 @@ class PublicApiService {
     })
 
     return this.handleResponse<Stream>(response)
+  }
+
+  // Public Contact API
+  async submitContactForm(data: {
+    fullName: string
+    whatsappNumber: string
+    message: string
+  }): Promise<ApiResponse<{ id: string }>> {
+    const response = await fetch(`${this.baseUrl}/api/contact`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(data),
+    })
+
+    return this.handleResponse<{ id: string }>(response)
+  }
+
+  // Public Church Info API
+  async getContactInfo(): Promise<ApiResponse<Record<string, string>>> {
+    const response = await fetch(`${this.baseUrl}/api/church/contact`, {
+      method: 'GET',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+    })
+
+    return this.handleResponse<Record<string, string>>(response)
   }
 }
 

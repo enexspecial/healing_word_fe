@@ -4,10 +4,7 @@ import { useState, useEffect } from 'react'
 import { 
   Plus, 
   Search, 
-  Edit, 
   Trash2, 
-  Eye,
-  MoreHorizontal,
   User,
   Shield,
   Mail,
@@ -17,6 +14,7 @@ import {
   X
 } from 'lucide-react'
 import { useUsers } from '@/lib/hooks/useUsers'
+import { usePermissions } from '@/lib/hooks/usePermissions'
 import { User as UserType } from '@/types/api'
 
 export default function UsersPage() {
@@ -33,7 +31,8 @@ export default function UsersPage() {
     return Array.isArray(roles) ? roles : [roles]
   }
 
-  const { getAllUsers, updateUser, deactivateUser, searchUsers, loading, error } = useUsers()
+  const { getAllUsers, createUser, deleteUser, updateUserStatus, searchUsers, loading, error } = useUsers()
+  const { can, isSuperAdmin } = usePermissions()
   
   // State for users data
   const [users, setUsers] = useState<UserType[]>([])
@@ -45,9 +44,8 @@ export default function UsersPage() {
     firstName: '',
     lastName: '',
     email: '',
-    password: '',
     phoneNumber: '',
-    role: 'regular_user'
+    role: ''
   })
 
   // Load users on component mount
@@ -89,15 +87,73 @@ export default function UsersPage() {
     setIsSubmitting(true)
 
     try {
-      // User creation would need to be implemented via auth service register endpoint
-      alert('User creation feature to be implemented')
-      setShowAddModal(false)
-      resetForm()
-    } catch (error) {
+      const result = await createUser({
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        email: formData.email,
+        phone: formData.phoneNumber,
+        ...(formData.role && { role: formData.role }),
+        // No password needed - AuthService will generate temporary password
+      })
+
+      if (result) {
+        // Check if temporary password is included in response
+        const responseData = result as any;
+        if (responseData.temporaryPassword) {
+          alert(`User created successfully!\n\nTemporary password: ${responseData.temporaryPassword}\n\nPlease share this password with the user securely. An email may also be sent if the email service is working.`)
+        } else {
+          alert('User created successfully! A temporary password has been sent to their email.')
+        }
+        setShowAddModal(false)
+        resetForm()
+        loadUsers() // Refresh the user list
+      } else {
+        alert('Failed to create user')
+      }
+    } catch (error: any) {
       console.error('Error creating user:', error)
-      alert('An error occurred while creating the user')
+      alert(error.message || 'An error occurred while creating the user')
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleDeleteUser = async (userId: string, userName: string) => {
+    if (!confirm(`Are you sure you want to delete user "${userName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      const result = await deleteUser(userId)
+      if (result) {
+        alert('User deleted successfully!')
+        loadUsers() // Refresh the user list
+      } else {
+        alert('Failed to delete user')
+      }
+    } catch (error: any) {
+      console.error('Error deleting user:', error)
+      alert(error.message || 'An error occurred while deleting the user')
+    }
+  }
+
+  const handleToggleStatus = async (userId: string, currentStatus: boolean, userName: string) => {
+    const action = currentStatus ? 'suspend' : 'activate'
+    if (!confirm(`Are you sure you want to ${action} user "${userName}"?`)) {
+      return
+    }
+
+    try {
+      const result = await updateUserStatus(userId, !currentStatus)
+      if (result) {
+        alert(`User ${action}d successfully!`)
+        loadUsers() // Refresh the user list
+      } else {
+        alert(`Failed to ${action} user`)
+      }
+    } catch (error: any) {
+      console.error(`Error ${action}ing user:`, error)
+      alert(error.message || `An error occurred while ${action}ing the user`)
     }
   }
 
@@ -106,9 +162,8 @@ export default function UsersPage() {
       firstName: '',
       lastName: '',
       email: '',
-      password: '',
       phoneNumber: '',
-      role: 'regular_user'
+      role: ''
     })
   }
 
@@ -127,7 +182,7 @@ export default function UsersPage() {
     const matchesSearch = user.firstName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.lastName.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          user.email.toLowerCase().includes(searchTerm.toLowerCase())
-    const matchesRole = selectedRole === 'All' || normalizeRoles(user.roles).includes(selectedRole)
+    const matchesRole = selectedRole === 'All' || user.role === selectedRole
     const matchesStatus = selectedStatus === 'All' || user.isActive === (selectedStatus === 'Active')
     
     return matchesSearch && matchesRole && matchesStatus
@@ -337,11 +392,9 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
                       <div className="flex flex-wrap gap-1">
-                        {normalizeRoles(user.roles).map(role => (
-                          <span key={role} className={getRoleBadge(role)}>
-                            {role.replace('_', ' ')}
-                          </span>
-                        ))}
+                        <span className={getRoleBadge(user.role)}>
+                          {user.role.replace('_', ' ')}
+                        </span>
                       </div>
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -361,18 +414,26 @@ export default function UsersPage() {
                     </td>
                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                       <div className="flex items-center space-x-2">
-                        <button className="text-blue-600 hover:text-blue-900" title="View User">
-                          <Eye className="h-4 w-4" />
+                        <button 
+                          onClick={() => handleToggleStatus(user.id, user.isActive, `${user.firstName} ${user.lastName}`)}
+                          className={`${user.isActive ? 'text-yellow-600 hover:text-yellow-900' : 'text-green-600 hover:text-green-900'}`}
+                          title={user.isActive ? 'Suspend User' : 'Activate User'}
+                        >
+                          {user.isActive ? (
+                            <XCircle className="h-4 w-4" />
+                          ) : (
+                            <CheckCircle className="h-4 w-4" />
+                          )}
                         </button>
-                        <button className="text-indigo-600 hover:text-indigo-900" title="Edit User">
-                          <Edit className="h-4 w-4" />
-                        </button>
-                        <button className="text-red-600 hover:text-red-900" title="Delete User">
-                          <Trash2 className="h-4 w-4" />
-                        </button>
-                        <button className="text-gray-400 hover:text-gray-600" title="More Options">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </button>
+                        {isSuperAdmin && (
+                          <button 
+                            onClick={() => handleDeleteUser(user.id, `${user.firstName} ${user.lastName}`)}
+                            className="text-red-600 hover:text-red-900" 
+                            title="Delete User"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
@@ -393,6 +454,8 @@ export default function UsersPage() {
               <button
                 onClick={closeModal}
                 className="text-gray-400 hover:text-gray-600"
+                title="Close Modal"
+                aria-label="Close Modal"
               >
                 <X className="h-6 w-6" />
               </button>
@@ -447,24 +510,6 @@ export default function UsersPage() {
                 />
               </div>
 
-              {/* Password */}
-              <div>
-                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                  Password *
-                </label>
-                <input
-                  type="password"
-                  id="password"
-                  required
-                  value={formData.password}
-                  onChange={(e) => handleInputChange('password', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Enter password"
-                  minLength={8}
-                />
-                <p className="text-xs text-gray-500 mt-1">Minimum 8 characters</p>
-              </div>
-
               {/* Phone Number and Role */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
@@ -482,19 +527,18 @@ export default function UsersPage() {
                 </div>
                 <div>
                   <label htmlFor="role" className="block text-sm font-medium text-gray-700 mb-1">
-                    Role *
+                    Role
                   </label>
                   <select
                     id="role"
-                    required
                     value={formData.role}
                     onChange={(e) => handleInputChange('role', e.target.value)}
                     className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    <option value="regular_user">Regular User</option>
-                    <option value="content_admin">Content Administrator</option>
+                    <option value="">Select a role (optional)</option>
                     <option value="ministry_leader">Ministry Leader</option>
-                    <option value="technical_admin">Technical Administrator</option>
+                    <option value="media">Media</option>
+                    <option value="admin">Admin</option>
                     <option value="super_admin">Super Administrator</option>
                   </select>
                 </div>

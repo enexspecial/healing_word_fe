@@ -37,7 +37,10 @@ export const initializeApiToken = () => {
 
 // Handle API errors globally
 export const handleApiError = (error: Error, router?: any) => {
-  console.error('API Error:', error)
+  // Log only in development
+  if (process.env.NODE_ENV === 'development') {
+    console.error('API Error:', error)
+  }
   
   if (error.message.includes('Authentication required') || error.message.includes('Authentication token not found')) {
     // Clear the token and redirect to login

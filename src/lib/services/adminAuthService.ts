@@ -164,6 +164,65 @@ class AuthService {
       }
     }
   }
+
+  async changePassword(
+    token: string,
+    data: {
+      currentPassword: string
+      newPassword: string
+      confirmPassword: string
+    }
+  ): Promise<ApiResponse<{ message: string }>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/change-password`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to change password')
+      }
+
+      const responseData = await response.json()
+      return { success: true, data: responseData }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to change password'
+      }
+    }
+  }
+
+  async deleteAccount(token: string, userId: string): Promise<ApiResponse<void>> {
+    try {
+      const response = await fetch(`${this.baseUrl}/auth/users/${userId}/deactivate`, {
+        method: 'PUT',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json',
+        },
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Failed to delete account')
+      }
+
+      return { success: true }
+
+    } catch (error) {
+      return {
+        success: false,
+        error: error instanceof Error ? error.message : 'Failed to delete account'
+      }
+    }
+  }
 }
 
 export const authService = new AuthService()

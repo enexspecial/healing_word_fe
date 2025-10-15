@@ -137,10 +137,7 @@ class UserService {
     
     const byRole: Record<string, number> = {}
     users.forEach(user => {
-      const userRoles = Array.isArray(user.roles) ? user.roles : [user.roles]
-      userRoles.forEach(role => {
-        byRole[role] = (byRole[role] || 0) + 1
-      })
+      byRole[user.role] = (byRole[user.role] || 0) + 1
     })
 
     // Calculate recent registrations (last 30 days)
