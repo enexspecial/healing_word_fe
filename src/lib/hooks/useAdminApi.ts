@@ -115,7 +115,7 @@ export function useUserOperations() {
   }, [execute])
 
   const assignUserRoles = useCallback(async (id: string, rolesData: any) => {
-    return execute(() => adminApiService.assignUserRoles(id, rolesData))
+    return execute(() => adminApiService.assignUserRole(id, rolesData))
   }, [execute])
 
   return {
